@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>急性肝不全 予後予測AI</title>
+    <link rel="stylesheet" href="{% static 'myapp/style.css' %}">
+</head>
+<body>
+
+    <div class="container">
+
+        <h1 class="title">急性肝不全 予後予測AI</h1>
+        <p class="subtitle">
+            既存手法より高い精度と、極めて低い死亡見逃し率を達成した予測モデル
+        </p>
+
+        <form method="POST" action="{% url 'predict' %}" class="input-form">
+            {% csrf_token %}
+
+            <label>年齢（Age）</label>
+            <input type="number" name="age" step="1" min="0"
+                   placeholder="半角数字で入力してください" required>
+
+            <label>総ビリルビン（TB）</label>
+            <input type="number" name="tb" step="0.1" min="0"
+                   placeholder="半角数字で入力してください" required>
+
+            <label>肝萎縮（Liver Atrophy）</label>
+            <select name="atrophy" class="large-select" required>
+                <option value="unknown">不明</option>
+                <option value="yes">有</option>
+                <option value="no">無</option>
+            </select>
+
+            <label>合併症数（Number of Complications）</label>
+            <input type="number" name="complication" step="1" min="0"
+                   placeholder="半角数字で入力してください" required>
+
+            <label>INR</label>
+            <input type="number" name="inr" step="0.01" min="0"
+                   placeholder="半角数字で入力してください" required>
+
+            <button type="submit" class="predict-btn">予測する</button>
+        </form>
+
+    </div>
+
+</body>
+</html>

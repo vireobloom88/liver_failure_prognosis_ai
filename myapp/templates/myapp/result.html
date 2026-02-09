@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>予測結果</title>
+    <link rel="stylesheet" href="{% static 'myapp/style.css' %}">
+</head>
+<body>
+
+<div class="container">
+
+    <h2>予測結果</h2>
+    <div class="flex-row">
+    {% for model_name, data in results.items %}
+        <div class="model-box">
+            <h3>{{ model_name }}</h3>
+            <p>予測：<strong>{{ data.prediction }}</strong></p>
+            <p>確率：{{ data.probability }}%</p>
+        </div>
+    {% endfor %}
+    </div>
+
+    <h2>特徴量の寄与度（Feature Importance）</h2>
+    <div class="flex-row">
+    {% for model_name, importance in importances.items %}
+        <div class="importance-box">
+            <h3>{{ model_name }}</h3>
+            <ul>
+                {% for feature, value in importance.items %}
+                    <li>{{ feature }}：{{ value }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+    </div>
+
+    <a href="{% url 'index' %}" class="back-btn">入力画面に戻る</a>
+
+</div>
+
+</body>
+</html>

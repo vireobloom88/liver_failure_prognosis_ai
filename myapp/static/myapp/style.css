@@ -1,0 +1,169 @@
+body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f5f7fa;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 90%;
+    max-width: 1400px;
+    margin: 40px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.title {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.subtitle {
+    text-align: center;
+    color: #555;
+    margin-bottom: 30px;
+}
+
+.input-form label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+    color: #333;
+}
+
+.input-form input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+
+.predict-btn {
+    width: 100%;
+    margin-top: 25px;
+    padding: 12px;
+    background: #0078d7;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.predict-btn:hover {
+    background: #005fa3;
+}
+
+.result-section {
+    margin-top: 40px;
+}
+
+.model-results, .importance-section {
+    margin-top: 20px;
+}
+
+.model-box, .importance-box {
+    background: #eef3f8;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.model-box h3, .importance-box h3 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+/* 既存の input と同じくらいの大きさにする */
+.input-form select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+/* ホバー時の視覚的フィードバック */
+.input-form select:hover {
+    border-color: #0078d7;
+}
+
+/* フォーカス時（クリックした時）の強調 */
+.input-form select:focus {
+    outline: none;
+    border-color: #0078d7;
+    box-shadow: 0 0 4px rgba(0, 120, 215, 0.4);
+}
+/* 入力欄の placeholder を薄く */
+input::placeholder {
+    color: #999;
+}
+
+/* 肝萎縮の選択ボックスを大きく */
+.large-select {
+    width: 100%;
+    padding: 14px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 18px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.large-select:hover {
+    border-color: #0078d7;
+}
+
+.large-select:focus {
+    outline: none;
+    border-color: #0078d7;
+    box-shadow: 0 0 4px rgba(0, 120, 215, 0.4);
+}
+
+/* 戻るボタン */
+.back-btn {
+    display: block;
+    margin-top: 30px;
+    text-align: center;
+    padding: 12px;
+    background: #0078d7;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.back-btn:hover {
+    background: #005fa3;
+}
+
+/* 横一列に並べる（折り返し禁止）＋均等配置 */
+.flex-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap; /* 折り返し禁止 */
+    gap: 20px;
+    justify-content: space-between; /* ← これが重要：均等配置 */
+    overflow-x: auto; /* スマホでは横スクロール */
+    padding-bottom: 10px;
+}
+
+/* モデル1つの枠（サイズは今のまま） */
+.model-box, .importance-box {
+    width: 250px;       /* ← 今のサイズのまま（必要なら調整可） */
+    min-width: 250px;
+    background: #eef3f8;
+    padding: 20px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    text-align: center;
+}
