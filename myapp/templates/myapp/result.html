@@ -5,39 +5,122 @@
     <meta charset="UTF-8">
     <title>予測結果</title>
     <link rel="stylesheet" href="{% static 'myapp/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
 <div class="container">
 
     <h2>予測結果</h2>
+
     <div class="flex-row">
-    {% for model_name, data in results.items %}
+
+        {% with data=results.ランダムフォレスト %}
         <div class="model-box">
-            <h3>{{ model_name }}</h3>
+            <h3>ランダムフォレスト</h3>
             <p>予測：<strong>{{ data.prediction }}</strong></p>
-            <p>確率：{{ data.probability }}%</p>
+            <p>予測確率：{{ data.probability }}%</p>
         </div>
-    {% endfor %}
+        {% endwith %}
+
+        {% with data=results.EBM %}
+        <div class="model-box">
+            <h3>EBM</h3>
+            <p>予測：<strong>{{ data.prediction }}</strong></p>
+            <p>予測確率：{{ data.probability }}%</p>
+        </div>
+        {% endwith %}
+
+        {% with data=results.CatBoost %}
+        <div class="model-box">
+            <h3>CatBoost</h3>
+            <p>予測：<strong>{{ data.prediction }}</strong></p>
+            <p>予測確率：{{ data.probability }}%</p>
+        </div>
+        {% endwith %}
+
+        {% with data=results.決定木 %}
+        <div class="model-box">
+            <h3>決定木</h3>
+            <p>予測：<strong>{{ data.prediction }}</strong></p>
+            <p>予測確率：{{ data.probability }}%</p>
+        </div>
+        {% endwith %}
+
     </div>
 
-    <h2>特徴量の寄与度（Feature Importance）</h2>
-    <div class="flex-row">
-    {% for model_name, importance in importances.items %}
-        <div class="importance-box">
-            <h3>{{ model_name }}</h3>
-            <ul>
-                {% for feature, value in importance.items %}
-                    <li>{{ feature }}：{{ value }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% endfor %}
+    <h2>検証データでの性能</h2>
+
+    <div class="chart-container">
+        <h3>1.正解率（Accuracy）</h3>
+        <p style="font-size: 0.9em; color: #555; margin-top: 5px;">
+            予測結果と実際の転帰が一致した割合
+        </p>
+        <canvas id="accuracyChart"></canvas>
+        
+    </div>
+
+    <div class="chart-container">
+        <h3>2.死亡見逃し率（False Negative Rate）</h3>
+        <p style="font-size: 0.9em; color: #555; margin-top: 5px;">
+            死亡と予測して実際に死亡であった割合
+        </p>
+        <canvas id="fnrChart"></canvas>
+        
     </div>
 
     <a href="{% url 'index' %}" class="back-btn">入力画面に戻る</a>
 
 </div>
+
+<script>
+    // 共通の色セット
+    const barColors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0'];
+
+    // Accuracy Chart
+    const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+    new Chart(accuracyCtx, {
+        type: 'bar',
+        data: {
+            labels: ['ランダムフォレスト', 'EBM', 'CatBoost', '決定木'],
+            datasets: [{
+                data: [0.837, 0.833, 0.830, 0.800],
+                backgroundColor: barColors
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { min: 0, max: 1 }
+            }
+        }
+    });
+
+    // False Negative Rate Chart
+    const fnrCtx = document.getElementById('fnrChart').getContext('2d');
+    new Chart(fnrCtx, {
+        type: 'bar',
+        data: {
+            labels: ['ランダムフォレスト', 'EBM', 'CatBoost', '決定木'],
+            datasets: [{
+                data: [0.015, 0.021, 0.031, 0.051],
+                backgroundColor: barColors
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { min: 0, max: 0.1 }
+            }
+        }
+    });
+</script>
 
 </body>
 </html>

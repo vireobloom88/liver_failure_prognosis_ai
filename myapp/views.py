@@ -3,32 +3,47 @@ from django.shortcuts import render
 def index(request):
     return render(request, "myapp/index.html")
 
+# myapp/views.py
 
-def predict(request):
+from django.shortcuts import render
+from .predict_models import predict_all_models
+
+
+def predict_view(request):
     if request.method == "POST":
-        age = int(request.POST["age"])
-        tb = float(request.POST["tb"])
-        atrophy = request.POST["atrophy"]
-        complication = int(request.POST["complication"])
-        inr = float(request.POST["inr"])
+        # index.html の name に合わせて取得
+        age = request.POST.get("age")
+        tb = request.POST.get("tb")
+        atrophy = request.POST.get("atrophy")  # 無/有/不明
+        comp146 = request.POST.get("complication")
+        inr = request.POST.get("inr")
 
-        # --- ここで AI モデルを動かす ---
-        # 例としてダミーの結果を返す
-        results = {
-            "モデルA": {"prediction": "生存", "probability": 92.1},
-            "モデルB": {"prediction": "生存", "probability": 88.4},
-            "モデルC": {"prediction": "死亡", "probability": 63.2},
-            "モデルD": {"prediction": "生存", "probability": 75.0},
-        }
+        # 入力チェック
+        if None in [age, tb, atrophy, comp146, inr]:
+            return render(request, "myapp/result.html", {
+                "error": "入力が不足しています。全ての項目を入力してください。"
+            })
 
-        importances = {
-            "モデルA": {"Age": 0.12, "TB": 0.33, "INR": 0.55},
-            "モデルB": {"Age": 0.22, "TB": 0.41, "INR": 0.37},
-            "モデルC": {"Age": 0.18, "TB": 0.29, "INR": 0.53},
-            "モデルD": {"Age": 0.10, "TB": 0.45, "INR": 0.45},
+        # 型変換
+        age = int(age)
+        tb = float(tb)
+        comp146 = int(comp146)
+        inr = float(inr)
+
+        # 肝萎縮の値を日本語に変換（predict_models.py の仕様に合わせる）
+        mapping = {
+            "no": "無",
+            "yes": "有",
+            "unknown": "不明"
         }
+        kaniishuku = mapping.get(atrophy, "不明")
+
+        # 予測
+        results, importances = predict_all_models(kaniishuku, tb, comp146, age, inr)
 
         return render(request, "myapp/result.html", {
             "results": results,
-            "importances": importances,
+            "importances": importances
         })
+
+    return render(request, "myapp/index.html")
