@@ -20,6 +20,10 @@
             <h3>ランダムフォレスト</h3>
             <p>予測：<strong>{{ data.prediction }}</strong></p>
             <p>予測確率：{{ data.probability }}%</p>
+
+            <a href="{% url 'rf_importance' %}" class="back-btn">
+                特徴量寄与度
+            </a>
         </div>
         {% endwith %}
 
@@ -28,6 +32,10 @@
             <h3>EBM</h3>
             <p>予測：<strong>{{ data.prediction }}</strong></p>
             <p>予測確率：{{ data.probability }}%</p>
+
+            <a href="{% url 'ebm_importance' %}" class="back-btn">
+                特徴量寄与度
+            </a>
         </div>
         {% endwith %}
 
@@ -36,6 +44,10 @@
             <h3>CatBoost</h3>
             <p>予測：<strong>{{ data.prediction }}</strong></p>
             <p>予測確率：{{ data.probability }}%</p>
+
+            <a href="{% url 'cb_importance' %}" class="back-btn">
+                特徴量寄与度
+            </a>
         </div>
         {% endwith %}
 
@@ -44,6 +56,10 @@
             <h3>決定木</h3>
             <p>予測：<strong>{{ data.prediction }}</strong></p>
             <p>予測確率：{{ data.probability }}%</p>
+
+            <a href="{% url 'dt_importance' %}" class="back-btn">
+                特徴量寄与度
+            </a>
         </div>
         {% endwith %}
 
@@ -57,7 +73,6 @@
             予測結果と実際の転帰が一致した割合
         </p>
         <canvas id="accuracyChart"></canvas>
-        
     </div>
 
     <div class="chart-container">
@@ -66,7 +81,6 @@
             死亡と予測して実際に死亡であった割合
         </p>
         <canvas id="fnrChart"></canvas>
-        
     </div>
 
     <a href="{% url 'index' %}" class="back-btn">入力画面に戻る</a>
@@ -74,50 +88,31 @@
 </div>
 
 <script>
-    // 共通の色セット
     const barColors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0'];
 
-    // Accuracy Chart
-    const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
-    new Chart(accuracyCtx, {
+    new Chart(document.getElementById('accuracyChart'), {
         type: 'bar',
         data: {
             labels: ['ランダムフォレスト', 'EBM', 'CatBoost', '決定木'],
-            datasets: [{
-                data: [0.837, 0.833, 0.830, 0.800],
-                backgroundColor: barColors
-            }]
+            datasets: [{ data: [0.837, 0.833, 0.830, 0.800], backgroundColor: barColors }]
         },
         options: {
             indexAxis: 'y',
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { min: 0, max: 1 }
-            }
+            plugins: { legend: { display: false } },
+            scales: { x: { min: 0, max: 1 } }
         }
     });
 
-    // False Negative Rate Chart
-    const fnrCtx = document.getElementById('fnrChart').getContext('2d');
-    new Chart(fnrCtx, {
+    new Chart(document.getElementById('fnrChart'), {
         type: 'bar',
         data: {
             labels: ['ランダムフォレスト', 'EBM', 'CatBoost', '決定木'],
-            datasets: [{
-                data: [0.015, 0.021, 0.031, 0.051],
-                backgroundColor: barColors
-            }]
+            datasets: [{ data: [0.015, 0.021, 0.031, 0.051], backgroundColor: barColors }]
         },
         options: {
             indexAxis: 'y',
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { min: 0, max: 0.1 }
-            }
+            plugins: { legend: { display: false } },
+            scales: { x: { min: 0, max: 0.1 } }
         }
     });
 </script>

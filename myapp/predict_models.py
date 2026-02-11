@@ -5,6 +5,9 @@ import joblib
 import pandas as pd
 from catboost import CatBoostClassifier
 from django.conf import settings
+import shap
+import numpy as np
+
 
 # モデルフォルダ
 MODEL_DIR = os.path.join(settings.BASE_DIR, "myapp", "models")
@@ -57,7 +60,7 @@ def predict_all_models(kaniishuku, tb, comp146, age, inr):
     pred_cb = cb_model.predict(input_df)[0]
     prob_cb = cb_model.predict_proba(input_df)[0][1] * 100
 
-    # --- 結果を result.html の形式に合わせる ---
+    # --- 結果 ---
     results = {
         "ランダムフォレスト": {
             "prediction": convert_label(pred_rf),
@@ -77,18 +80,91 @@ def predict_all_models(kaniishuku, tb, comp146, age, inr):
         }
     }
 
-        # --- 特徴量重要度（result.html に合わせた形式） ---
-    importances = {
-        "ランダムフォレスト": dict(zip(rf_model.feature_names_in_, rf_model.feature_importances_)),
-        "決定木": dict(zip(dt_model.feature_names_in_, dt_model.feature_importances_)),
-        "EBM": {
-            "肝萎縮": 0.25,
-            "ＴＢ": 0.20,
-            "１４６合併症数": 0.30,
-            "年齢": 0.15,
-            "ＩＮＲ": 0.10
-        },
-        "CatBoost": dict(zip(cb_model.feature_names_, cb_model.get_feature_importance()))
-    }
+    # ★ SHAP/LIME を使うので importances は空でOK
+    importances = {}
 
     return results, importances
+
+def explain_with_shap(model, input_df):
+
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(input_df)  # shape = (1, 5, 2)
+
+    shap_raw = shap_values[0]  # shape = (5, 2)
+
+    # 生存（クラス0）の SHAP のみ使用
+    shap_0 = shap_raw[:, 0]
+
+    # ndarray → float に変換
+    shap_0 = [float(v) for v in shap_0]
+
+    # 特徴量名を修正（合併症数に変更）
+    features = list(input_df.columns)
+    features = ["肝萎縮", "ＴＢ", "合併症数", "年齢", "ＩＮＲ"]
+
+    return {
+        "features": features,
+        "shap_0": shap_0
+    }
+def explain_with_shap_catboost(model, input_df):
+
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(input_df)  # shape = (1, n_features)
+
+   
+
+    # CatBoost は (1, n_features) の場合 → クラス1（死亡）の SHAP
+    shap_1 = shap_values[0]  # shape = (n_features,)
+    shap_0 = -shap_1         # 生存SHAP = -死亡SHAP
+
+    shap_0 = [float(v) for v in shap_0]
+
+    features = ["肝萎縮", "ＴＢ", "合併症数", "年齢", "ＩＮＲ"]
+
+    return {
+        "features": features,
+        "shap_0": shap_0
+    }
+def explain_with_shap_dt(model, input_df):
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(input_df)  # shape = (1, n_features, 2)
+   
+
+    shap_raw = shap_values[0]  # shape = (n_features, 2)
+
+    shap_0 = shap_raw[:, 0]
+
+    shap_0 = [float(v) for v in shap_0]
+
+    features = ["肝萎縮", "ＴＢ", "合併症数", "年齢", "ＩＮＲ"]
+
+    return {
+        "features": features,
+        "shap_0": shap_0
+    }
+def explain_with_ebm(model, input_df):
+
+    explanation = model.explain_local(input_df)
+    internal = explanation._internal_obj
+
+    specific = internal["specific"][0]
+
+    names = specific["names"]
+    scores = specific["scores"]
+
+    # numpy.float64 → float
+    scores = [float(v) for v in scores]
+
+    # ★★★ 符号を反転（これが重要） ★★★
+    scores = [-v for v in scores]
+
+    # 特徴量名の整形
+    cleaned_names = []
+    for n in names:
+        n = n.replace("１４６合併症数", "合併症数")
+        cleaned_names.append(n)
+
+    return {
+        "features": cleaned_names,
+        "shap_0": scores
+    }

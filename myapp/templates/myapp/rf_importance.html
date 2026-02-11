@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ランダムフォレストの特徴量寄与度</title>
+    <link rel="stylesheet" href="{% static 'myapp/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>ランダムフォレストの特徴量寄与度（SHAP）</h2>
+    <p style="font-size: 0.9em; color: #555; margin-top: 10px;">
+    SHAP値：各特徴量が予測に与えた影響の大きさ<br>
+    緑の棒グラフは「生存」に寄与した特徴量、赤の棒グラフは「死亡」に寄与した特徴量を表します。
+    </p>
+    <div class="chart-container">
+        <canvas id="shapChart"></canvas>
+    </div>
+
+    <a href="{% url 'predict' %}" class="back-btn">予測結果に戻る</a>
+
+</div>
+
+
+
+<script>
+    const shapData = JSON.parse('{{ shap_json|safe }}');
+
+    const labels = shapData.features;
+    const shap0 = shapData.shap_0;
+
+    // 値が + なら緑、- なら赤
+    const colors = shap0.map(v =>
+        v >= 0 ? 'rgba(76, 175, 80, 0.7)' : 'rgba(244, 67, 54, 0.7)'
+    );
+
+    new Chart(document.getElementById('shapChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    data: shap0,
+                    backgroundColor: colors
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false },   // ★ 凡例を非表示
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.raw.toFixed(4);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'SHAP値' }  // ★ タイトルを SHAP値 に変更
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
