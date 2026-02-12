@@ -114,7 +114,6 @@ def dt_importance(request):
     })
 
 
-
 def predict_view(request):
 
     # --- POST（初回予測） ---
@@ -130,9 +129,9 @@ def predict_view(request):
                 "error": "入力が不足しています。全ての項目を入力してください。"
             })
 
-        age = int(age)
+        age = int(float(age))
         tb = float(tb)
-        comp146 = int(comp146)
+        comp146 = int(float(comp146))
         inr = float(inr)
 
         # 入力画面 → 日本語に変換
