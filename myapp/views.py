@@ -9,17 +9,19 @@ from .predict_models import (
     dt_model,
     cb_model,
     ebm_model,
-    convert_kaniishuku
+    convert_category   # ← convert_kaniishuku ではなく統一
 )
 import pandas as pd
 import json
+
 
 def index(request):
     return render(request, "myapp/index.html")
 
 
-
-
+# -----------------------------
+#   SHAP（ランダムフォレスト）
+# -----------------------------
 def rf_importance(request):
 
     if "last_input" not in request.session:
@@ -27,13 +29,14 @@ def rf_importance(request):
 
     data = request.session["last_input"]
 
-    kaniishuku_num = convert_kaniishuku(data["kaniishuku"])
-
     input_df = pd.DataFrame([{
-        "肝萎縮": kaniishuku_num,
+        "肝萎縮": convert_category(data["kaniishuku"]),
         "ＴＢ": data["tb"],
         "１４６合併症数": data["comp146"],
-        "年齢": data["age"],
+        "ＡＬＴ": data["alt"],
+        "DIC": convert_category(data["dic"]),
+        "腹水": convert_category(data["ascites"]),
+        "赤血球": data["rbc"],
         "ＩＮＲ": data["inr"]
     }])
 
@@ -44,6 +47,9 @@ def rf_importance(request):
     })
 
 
+# -----------------------------
+#   SHAP（EBM）
+# -----------------------------
 def ebm_importance(request):
 
     if "last_input" not in request.session:
@@ -51,22 +57,27 @@ def ebm_importance(request):
 
     data = request.session["last_input"]
 
-    kaniishuku_num = convert_kaniishuku(data["kaniishuku"])
-
     input_df = pd.DataFrame([{
-        "肝萎縮": kaniishuku_num,
+        "肝萎縮": convert_category(data["kaniishuku"]),
         "ＴＢ": data["tb"],
         "１４６合併症数": data["comp146"],
-        "年齢": data["age"],
+        "ＡＬＴ": data["alt"],
+        "DIC": convert_category(data["dic"]),
+        "腹水": convert_category(data["ascites"]),
+        "赤血球": data["rbc"],
         "ＩＮＲ": data["inr"]
     }])
 
-    # ★ ここで EBM の寄与度関数を呼び出す
     shap_result = explain_with_ebm(ebm_model, input_df)
 
     return render(request, "myapp/ebm_importance.html", {
         "shap_json": json.dumps(shap_result)
     })
+
+
+# -----------------------------
+#   SHAP（CatBoost）
+# -----------------------------
 def cb_importance(request):
 
     if "last_input" not in request.session:
@@ -74,13 +85,14 @@ def cb_importance(request):
 
     data = request.session["last_input"]
 
-    kaniishuku_num = convert_kaniishuku(data["kaniishuku"])
-
     input_df = pd.DataFrame([{
-        "肝萎縮": kaniishuku_num,
+        "肝萎縮": convert_category(data["kaniishuku"]),
         "ＴＢ": data["tb"],
         "１４６合併症数": data["comp146"],
-        "年齢": data["age"],
+        "ＡＬＴ": data["alt"],
+        "DIC": convert_category(data["dic"]),
+        "腹水": convert_category(data["ascites"]),
+        "赤血球": data["rbc"],
         "ＩＮＲ": data["inr"]
     }])
 
@@ -90,6 +102,10 @@ def cb_importance(request):
         "shap_json": json.dumps(shap_result)
     })
 
+
+# -----------------------------
+#   SHAP（決定木）
+# -----------------------------
 def dt_importance(request):
 
     if "last_input" not in request.session:
@@ -97,13 +113,14 @@ def dt_importance(request):
 
     data = request.session["last_input"]
 
-    kaniishuku_num = convert_kaniishuku(data["kaniishuku"])
-
     input_df = pd.DataFrame([{
-        "肝萎縮": kaniishuku_num,
+        "肝萎縮": convert_category(data["kaniishuku"]),
         "ＴＢ": data["tb"],
         "１４６合併症数": data["comp146"],
-        "年齢": data["age"],
+        "ＡＬＴ": data["alt"],
+        "DIC": convert_category(data["dic"]),
+        "腹水": convert_category(data["ascites"]),
+        "赤血球": data["rbc"],
         "ＩＮＲ": data["inr"]
     }])
 
@@ -114,60 +131,72 @@ def dt_importance(request):
     })
 
 
+# -----------------------------
+#   予測ビュー
+# -----------------------------
 def predict_view(request):
 
     # --- POST（初回予測） ---
     if request.method == "POST":
-        age = request.POST.get("age")
+
         tb = request.POST.get("tb")
         atrophy = request.POST.get("atrophy")
         comp146 = request.POST.get("complication")
         inr = request.POST.get("inr")
+        alt = request.POST.get("alt")
+        dic = request.POST.get("dic")
+        ascites = request.POST.get("ascites")
+        rbc = request.POST.get("rbc")
 
-        if None in [age, tb, atrophy, comp146, inr]:
+        if None in [tb, atrophy, comp146, inr, alt, dic, ascites, rbc]:
             return render(request, "myapp/result.html", {
                 "error": "入力が不足しています。全ての項目を入力してください。"
             })
 
-        age = int(float(age))
         tb = float(tb)
         comp146 = int(float(comp146))
         inr = float(inr)
+        alt = float(alt)
+        rbc = float(rbc)
 
         # 入力画面 → 日本語に変換
-        mapping = {
-            "no": "無",
-            "yes": "有",
-            "unknown": "不明"
-        }
-        kaniishuku = mapping.get(atrophy, "不明")
+        mapping = {"no": "無", "yes": "有"}
 
-        # ★ セッションには「日本語の肝萎縮」を保存（数値は保存しない）
+        kaniishuku = mapping.get(atrophy, "無")
+        dic_jp = mapping.get(dic, "無")
+        ascites_jp = mapping.get(ascites, "無")
+
+        # ★ セッション保存（日本語のカテゴリを保存）
         request.session["last_input"] = {
-            "age": age,
             "tb": tb,
             "comp146": comp146,
             "inr": inr,
-            "kaniishuku": kaniishuku
+            "alt": alt,
+            "rbc": rbc,
+            "kaniishuku": kaniishuku,
+            "dic": dic_jp,
+            "ascites": ascites_jp
         }
 
-    # --- GET（特徴量寄与度ページから戻る） ---
+    # --- GET（寄与度ページから戻る） ---
     else:
         if "last_input" not in request.session:
             return redirect("index")
 
         data = request.session["last_input"]
 
-        # ★ POST と同じ形式で復元（日本語の肝萎縮）
-        age = data["age"]
         tb = data["tb"]
         comp146 = data["comp146"]
         inr = data["inr"]
+        alt = data["alt"]
+        rbc = data["rbc"]
         kaniishuku = data["kaniishuku"]
+        dic_jp = data["dic"]
+        ascites_jp = data["ascites"]
 
-    # --- 予測実行（POST でも GET でもここに来る） ---
+    # --- 予測実行（8特徴量） ---
     results, importances = predict_all_models(
-        kaniishuku, tb, comp146, age, inr
+        kaniishuku, tb, comp146, alt, dic_jp, ascites_jp, rbc, inr
     )
 
     return render(request, "myapp/result.html", {

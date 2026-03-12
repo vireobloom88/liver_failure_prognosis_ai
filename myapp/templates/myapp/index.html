@@ -16,32 +16,47 @@
         </p>
         
         <form method="POST" action="{% url 'predict' %}" class="input-form">
-            {% csrf_token %}
+        {% csrf_token %}
 
-            <label>年齢（Age）</label>
-            <input type="number" name="age" step="1" min="0"
-                   placeholder="半角数字で入力してください" required>
+        <label>総ビリルビン（TB）<br><small>※ 小数点2桁まで入力可能</small></label>
+        <input type="number" name="tb" step="0.01" min="0"
+           placeholder="例：2.53" required>
 
-            <label>総ビリルビン（TB）</label>
-            <input type="number" name="tb" step="0.1" min="0"
-                   placeholder="半角数字で入力してください" required>
+        <label>肝萎縮（Liver Atrophy）</label>
+        <select name="atrophy" class="large-select" required>
+        <option value="yes">有</option>
+        <option value="no">無</option>
+        </select>
 
-            <label>肝萎縮（Liver Atrophy）</label>
-            <select name="atrophy" class="large-select" required>
-                <option value="unknown">不明</option>
-                <option value="yes">有</option>
-                <option value="no">無</option>
-            </select>
+        <label>腹水（Ascites）</label>
+        <select name="ascites" class="large-select" required>
+        <option value="yes">有</option>
+        <option value="no">無</option>
+        </select>
 
-            <label>合併症数（Number of Complications）</label>
-            <input type="number" name="complication" step="1" min="0"
-                   placeholder="半角数字で入力してください" required>
+        <label>DIC</label>
+        <select name="dic" class="large-select" required>
+        <option value="yes">有</option>
+        <option value="no">無</option>
+        </select>
 
-            <label>INR</label>
-            <input type="number" name="inr" step="0.01" min="0"
-                   placeholder="半角数字で入力してください" required>
+        <label>合併症数（Number of Complications）<br><small>※ 整数のみ</small></label>
+        <input type="number" name="complication" step="1" min="0"
+           placeholder="例：0" required>
 
-            <button type="submit" class="predict-btn">予測する</button>
+        <label>INR<br><small>※ 小数点2桁まで入力可能</small></label>
+        <input type="number" name="inr" step="0.01" min="0"
+           placeholder="例：1.53" required>
+
+        <label>ALT<br><small>※ 整数のみ</small></label>
+        <input type="number" name="alt" step="1" min="0"
+           placeholder="例：1500" required>
+
+        <label>赤血球（RBC）<br><small>※ 整数のみ</small></label>
+        <input type="number" name="rbc" step="1" min="0"
+           placeholder="例：450" required>
+
+        <button type="submit" class="predict-btn">予測する</button>
         </form>
 
     </div>

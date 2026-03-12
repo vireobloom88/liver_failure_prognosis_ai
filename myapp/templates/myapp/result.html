@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>予測結果</title>
     <link rel="stylesheet" href="{% static 'myapp/style.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
 </head>
 <body>
 
@@ -14,6 +14,17 @@
     <h2>予測結果</h2>
 
     <div class="flex-row">
+        {% with data=results.EBM %}
+        <div class="model-box">
+            <h3>EBM</h3>
+            <p>予測：<strong>{{ data.prediction }}</strong></p>
+            <p>予測確率：{{ data.probability }}%</p>
+
+            <a href="{% url 'ebm_importance' %}" class="back-btn">
+                特徴量寄与度
+            </a>
+        </div>
+        {% endwith %}
 
         {% with data=results.ランダムフォレスト %}
         <div class="model-box">
@@ -27,17 +38,7 @@
         </div>
         {% endwith %}
 
-        {% with data=results.EBM %}
-        <div class="model-box">
-            <h3>EBM</h3>
-            <p>予測：<strong>{{ data.prediction }}</strong></p>
-            <p>予測確率：{{ data.probability }}%</p>
-
-            <a href="{% url 'ebm_importance' %}" class="back-btn">
-                特徴量寄与度
-            </a>
-        </div>
-        {% endwith %}
+        
 
         {% with data=results.CatBoost %}
         <div class="model-box">
@@ -65,7 +66,7 @@
 
     </div>
 
-    <h2>検証データでの性能</h2>
+    <h2>汎化性能</h2>
 
     <div class="chart-container">
         <h3>1.正解率（Accuracy）</h3>
@@ -87,14 +88,20 @@
 
 </div>
 
+
+
 <script>
     const barColors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0'];
 
+    // Accuracy（nestedCV）
     new Chart(document.getElementById('accuracyChart'), {
         type: 'bar',
         data: {
-            labels: ['ランダムフォレスト', 'EBM', 'CatBoost', '決定木'],
-            datasets: [{ data: [0.837, 0.833, 0.830, 0.800], backgroundColor: barColors }]
+            labels: ['EBM', 'ランダムフォレスト', 'CatBoost', '決定木'],
+            datasets: [{
+                data: [0.808, 0.795, 0.798, 0.779],
+                backgroundColor: barColors
+            }]
         },
         options: {
             indexAxis: 'y',
@@ -103,11 +110,15 @@
         }
     });
 
+    // 死亡見逃し率（nestedCV）
     new Chart(document.getElementById('fnrChart'), {
         type: 'bar',
         data: {
-            labels: ['ランダムフォレスト', 'EBM', 'CatBoost', '決定木'],
-            datasets: [{ data: [0.015, 0.021, 0.031, 0.051], backgroundColor: barColors }]
+            labels: ['EBM', 'ランダムフォレスト', 'CatBoost', '決定木'],
+            datasets: [{
+                data: [0.060, 0.047, 0.059, 0.085],
+                backgroundColor: barColors
+            }]
         },
         options: {
             indexAxis: 'y',
@@ -116,6 +127,5 @@
         }
     });
 </script>
-
 </body>
 </html>

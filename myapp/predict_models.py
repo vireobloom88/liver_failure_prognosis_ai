@@ -8,22 +8,21 @@ from django.conf import settings
 import shap
 import numpy as np
 
-
 # モデルフォルダ
 MODEL_DIR = os.path.join(settings.BASE_DIR, "myapp", "models")
 
 # --- モデル読み込み ---
-rf_model = joblib.load(os.path.join(MODEL_DIR, "final_best_rf_model.joblib"))
-dt_model = joblib.load(os.path.join(MODEL_DIR, "final_best_dt_model.joblib"))
-ebm_model = joblib.load(os.path.join(MODEL_DIR, "final_best_ebm_model.joblib"))
+rf_model = joblib.load(os.path.join(MODEL_DIR, "final_best_rf_model_8_data_without_imputation_production_model.joblib"))
+dt_model = joblib.load(os.path.join(MODEL_DIR, "final_best_dt_model_8_data_without_imputation_production_model.joblib"))
+ebm_model = joblib.load(os.path.join(MODEL_DIR, "final_best_ebm_model_8_data_without_imputation_production_model.joblib"))
 
 cb_model = CatBoostClassifier()
-cb_model.load_model(os.path.join(MODEL_DIR, "final_best_cb_model.cbm"))
+cb_model.load_model(os.path.join(MODEL_DIR, "final_best_cb_model_8_data_without_imputation_production_model.cbm"))
 
 
-# --- 肝萎縮の変換 ---
-def convert_kaniishuku(value):
-    mapping = {"無": 2, "有": 1, "不明": 0}
+# --- カテゴリ変換（肝萎縮・DIC・腹水 共通） ---
+def convert_category(value):
+    mapping = {"無": 2, "有": 1}
     return mapping.get(value, 0)
 
 
@@ -32,18 +31,23 @@ def convert_label(x):
     return "死亡予測" if x == 1 else "生存予測"
 
 
-# --- 予測関数 ---
-def predict_all_models(kaniishuku, tb, comp146, age, inr):
+# --- 予測関数（8特徴量版） ---
+def predict_all_models(kaniishuku, tb, comp146, alt, dic, ascites, rbc, inr):
 
-    # 肝萎縮を数値化
-    kaniishuku_num = convert_kaniishuku(kaniishuku)
+    # カテゴリ変換
+    kaniishuku_num = convert_category(kaniishuku)
+    dic_num = convert_category(dic)
+    ascites_num = convert_category(ascites)
 
-    # DataFrame 作成
+    # DataFrame（モデルの特徴量順に合わせる）
     input_df = pd.DataFrame([{
         "肝萎縮": kaniishuku_num,
         "ＴＢ": tb,
         "１４６合併症数": comp146,
-        "年齢": age,
+        "ＡＬＴ": alt,
+        "DIC": dic_num,
+        "腹水": ascites_num,
+        "赤血球": rbc,
         "ＩＮＲ": inr
     }])
 
@@ -80,17 +84,15 @@ def predict_all_models(kaniishuku, tb, comp146, age, inr):
         }
     }
 
-    # ★ SHAP/LIME を使うので importances は空でOK
     importances = {}
-
     return results, importances
 
 def explain_with_shap(model, input_df):
 
     explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(input_df)  # shape = (1, 5, 2)
+    shap_values = explainer.shap_values(input_df)  # shape = (1, 8, 2)
 
-    shap_raw = shap_values[0]  # shape = (5, 2)
+    shap_raw = shap_values[0]  # shape = (8, 2)
 
     # 生存（クラス0）の SHAP のみ使用
     shap_0 = shap_raw[:, 0]
@@ -98,9 +100,11 @@ def explain_with_shap(model, input_df):
     # ndarray → float に変換
     shap_0 = [float(v) for v in shap_0]
 
-    # 特徴量名を修正（合併症数に変更）
-    features = list(input_df.columns)
-    features = ["肝萎縮", "ＴＢ", "合併症数", "年齢", "ＩＮＲ"]
+    # ★ 8特徴量に更新 ★
+    features = [
+        "肝萎縮", "ＴＢ", "１４６合併症数", "ＡＬＴ",
+        "DIC", "腹水", "赤血球", "ＩＮＲ"
+    ]
 
     return {
         "features": features,
@@ -109,39 +113,46 @@ def explain_with_shap(model, input_df):
 def explain_with_shap_catboost(model, input_df):
 
     explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(input_df)  # shape = (1, n_features)
+    shap_values = explainer.shap_values(input_df)  # shape = (1, 8)
 
-   
-
-    # CatBoost は (1, n_features) の場合 → クラス1（死亡）の SHAP
-    shap_1 = shap_values[0]  # shape = (n_features,)
-    shap_0 = -shap_1         # 生存SHAP = -死亡SHAP
+    # CatBoost はクラス1（死亡）の SHAP
+    shap_1 = shap_values[0]
+    shap_0 = -shap_1  # 生存SHAP = -死亡SHAP
 
     shap_0 = [float(v) for v in shap_0]
 
-    features = ["肝萎縮", "ＴＢ", "合併症数", "年齢", "ＩＮＲ"]
+    # ★ 8特徴量に更新 ★
+    features = [
+        "肝萎縮", "ＴＢ", "１４６合併症数", "ＡＬＴ",
+        "DIC", "腹水", "赤血球", "ＩＮＲ"
+    ]
 
     return {
         "features": features,
         "shap_0": shap_0
     }
-def explain_with_shap_dt(model, input_df):
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(input_df)  # shape = (1, n_features, 2)
-   
 
-    shap_raw = shap_values[0]  # shape = (n_features, 2)
+def explain_with_shap_dt(model, input_df):
+
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(input_df)  # shape = (1, 8, 2)
+
+    shap_raw = shap_values[0]  # shape = (8, 2)
 
     shap_0 = shap_raw[:, 0]
-
     shap_0 = [float(v) for v in shap_0]
 
-    features = ["肝萎縮", "ＴＢ", "合併症数", "年齢", "ＩＮＲ"]
+    # ★ 8特徴量に更新 ★
+    features = [
+        "肝萎縮", "ＴＢ", "１４６合併症数", "ＡＬＴ",
+        "DIC", "腹水", "赤血球", "ＩＮＲ"
+    ]
 
     return {
         "features": features,
         "shap_0": shap_0
     }
+
 def explain_with_ebm(model, input_df):
 
     explanation = model.explain_local(input_df)
@@ -161,7 +172,7 @@ def explain_with_ebm(model, input_df):
     # 特徴量名の整形
     cleaned_names = []
     for n in names:
-        n = n.replace("１４６合併症数", "合併症数")
+        n = n.replace("１４６合併症数", "１４６合併症数")  # そのまま
         cleaned_names.append(n)
 
     return {
